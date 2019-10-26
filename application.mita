@@ -1,0 +1,70 @@
+/*
+ * httpMita
+ *
+ * Send sensor data over HTTP; POST method (no TLS)
+ *
+ * Eclipse Mita: XDK Workbench v.3.6.0
+ *
+ * Check out more about HTTP MITA on:
+ * https://www.eclipse.org/mita/platforms/xdk110/#rest-over-http
+ *
+ * Get public endpoint using private navigator (only works on Firefox) on:
+ * http://webhook.site/
+ *
+ * Useful hotkeys:
+ *     Ctrl + space
+ */
+
+package main;
+import platforms.xdk110;
+
+var counterMotion = 0;
+
+/* Setup section */
+setup light
+{
+	manual_mode = true;
+	integration_time = MS_800;
+	high_brightness = false;
+}
+
+setup environment
+{
+	power_mode = Normal;
+	temperature_oversampling = OVERSAMPLE_8X;
+}
+
+setup accelerometer
+{
+	range = Range_16G;
+	bandwidth = BW_7_81Hz;
+	any_motion_threshold = 500;
+}
+setup theNetwork: WLAN
+{
+	ssid = "iPhone de Alejandro";                               //Put the access point name here
+	authentication = Personal(psk = "del 1 al 8"); //Put the access point password here
+	ipConfiguration = Dhcp();
+}
+
+setup httpBackEnd : HttpRestClient
+{
+	transport = theNetwork;
+	endpointBase = "http://api.thingspeak.com";
+	
+	/*
+	 * The path is asigned once typing http://webhook.site/ 
+	 * on-hand in a Firefox web page explorer in private mode
+	 */
+	var post = resource(endpoint = "/update?api_key=90OL0UMM2Z6AD5EW",writeMethod = POST);
+}
+
+/* Actions */
+every 30 seconds
+{
+	var lightValue = light.intensity.read();
+	var tempValue = environment.temperature.read();
+	var humidityValue = environment.humidity.read();
+	var pressureValue = environment.pressure.read();
+	httpBackEnd.post.write(`{"field1": ${lightValue}, "field2": ${tempValue}, "field3": ${humidityValue}, "field4": ${pressureValue} }`);
+}
